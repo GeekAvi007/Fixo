@@ -1,21 +1,20 @@
-import { useEffect, useState } from "react";
-import { fetchNearestGarages } from "../hooks/useFetchGarages";
+import React, { useEffect } from 'react';
+import { useFetchGarages } from '../hooks/useFetchGarages'; // Corrected import path
 
-const FindGarages = ({ userLocation }) => {
-  const [garages, setGarages] = useState([]);
+const FindGarages = ({ userId }) => {
+  const { garages, loading, error } = useFetchGarages(userId);
 
-  useEffect(() => {
-    if (userLocation) {
-      fetchNearestGarages(userLocation).then(setGarages);
-    }
-  }, [userLocation]);
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>{error}</div>;
 
   return (
     <div>
-      <h2>Nearby Garages</h2>
+      <h1>Find Garages</h1>
       <ul>
         {garages.map((garage) => (
-          <li key={garage.id}>{garage.name} - {garage.distance} km away</li>
+          <li key={garage.$id}>
+            {garage.name} - {garage.location}
+          </li>
         ))}
       </ul>
     </div>

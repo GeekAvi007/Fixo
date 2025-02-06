@@ -1,45 +1,91 @@
-import { Client, Account, Databases } from "appwrite";
+import { Client, Account, Databases, ID, Query } from "appwrite";
 
-// Initialize Appwrite client
-const client = new Client();
-client.setEndpoint(import.meta.env.VITE_APPWRITE_ENDPOINT).setProject(import.meta.env.VITE_APPWRITE_PROJECT_ID);
+class AppwriteService {
+  constructor() {
+    this.client = new Client();
 
-// Initialize Appwrite services
-export const account = new Account(client);
-export const databases = new Databases(client);
+    this.client
+      .setEndpoint(import.meta.env.VITE_APPWRITE_ENDPOINT) // ✅ Ensure correct Appwrite endpoint
+      .setProject(import.meta.env.VITE_APPWRITE_PROJECT_ID); // ✅ Ensure correct project ID
 
-// AUTH FUNCTIONS
-export const registerUser = async (email, password, name) => {
-  return await account.create("unique()", email, password, name);
-};
+    this.account = new Account(this.client);
+    this.databases = new Databases(this.client);
+  }
 
-export const loginUser = async (email, password) => {
-  return await account.createEmailSession(email, password);
-};
+  // ✅ USER AUTH FUNCTIONS
+  async registerUser(email, password, name) {
+    try {
+      return await this.account.create(ID.unique(), email, password, name);
+    } catch (error) {
+      console.error("Error registering user:", error.message);
+      throw error;
+    }
+  }
 
-export const logoutUser = async () => {
-  return await account.deleteSession("current");
-};
+  async loginUser(email, password) {
+    try {
+      const session = await this.account.createEmailSession(email, password); // ✅ Fixed function name
+      return session;
+    } catch (error) {
+      console.error("Error logging in:", error.message);
+      throw error;
+    }
+  }
 
-// BOOKING FUNCTIONS
-export const createBooking = async (userId, serviceType, location) => {
-  return await databases.createDocument("serviceDB", "bookings", "unique()", {
-    userId,
-    serviceType,
-    location,
-    status: "Pending",
-  });
-};
+  async logoutUser() {
+    try {
+      await this.account.deleteSessions();
+    } catch (error) {
+      console.error("Logout failed:", error);
+      throw error;
+    }
+  }
 
-export const getUserBookings = async (userId) => {
-  return await databases.listDocuments("serviceDB", "bookings", [
-    { key: "userId", value: userId },
-  ]);
-};
+  // ✅ BOOKING FUNCTIONS
+  async createBooking(userId, serviceType, location) {
+    try {
+      return await this.databases.createDocument(
+        import.meta.env.VITE_APPWRITE_DATABASE_ID,
+        import.meta.env.VITE_APPWRITE_BOOKINGS_COLLECTION_ID,
+        ID.unique(),
+        { userId, serviceType, location, status: "Pending" }
+      );
+    } catch (error) {
+      console.error("Error creating booking:", error.message);
+      throw error;
+    }
+  }
 
-// MECHANIC TRACKING
-export const updateMechanicLocation = async (mechanicId, location) => {
-  return await databases.updateDocument("serviceDB", "mechanics", mechanicId, {
-    location,
-  });
-};
+  async getUserBookings(userId) {
+    try {
+      return await this.databases.listDocuments(
+        import.meta.env.VITE_APPWRITE_DATABASE_ID,
+        import.meta.env.VITE_APPWRITE_BOOKINGS_COLLECTION_ID,
+        [Query.equal("userId", userId)]
+      );
+    } catch (error) {
+      console.error("Error fetching user bookings:", error.message);
+      throw error;
+    }
+  }
+
+  // ✅ MECHANIC TRACKING
+  async updateMechanicLocation(mechanicId, location) {
+    try {
+      return await this.databases.updateDocument(
+        import.meta.env.VITE_APPWRITE_DATABASE_ID,
+        import.meta.env.VITE_APPWRITE_MECHANICS_COLLECTION_ID,
+        mechanicId,
+        { location }
+      );
+    } catch (error) {
+      console.error("Error updating mechanic location:", error.message);
+      throw error;
+    }
+  }
+}
+
+// ✅ Export a single instance (Correctly initialized with the client)
+export const appwriteService = new AppwriteService();
+export const account = new Account()
+export const databases = new Databases()
